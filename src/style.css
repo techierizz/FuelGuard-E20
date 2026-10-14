@@ -2122,8 +2122,8 @@ button {
 }
 
 @keyframes dashboard-enter {
-  0% { opacity: 0; transform: scale(0.985); }
-  100% { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 /* Primary Luxury Dark Olive Green Button */
@@ -2222,23 +2222,29 @@ button {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 99999;
   background: rgba(18, 34, 23, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  display: grid;
-  place-items: center;
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
 }
 
 .modal-dialog {
   max-width: 640px;
   width: 100%;
+  max-height: min(720px, calc(100dvh - 32px));
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 24px;
   box-shadow: 0 25px 70px rgba(18, 36, 24, 0.25);
   overflow: hidden;
+  margin: auto;
   animation: scale-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2339,7 +2345,10 @@ button {
 }
 
 .wizard-content {
-  padding: 26px;
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .wizard-step-title {
@@ -2683,74 +2692,730 @@ button {
 }
 
 /* =========================================================================
-   RESPONSIVENESS (MOBILE & TABLET)
+   COMPREHENSIVE RESPONSIVE DESIGN SYSTEM (DESKTOP, TABLET & MOBILE)
+   Ensures every single component is fluid, beautifully proportioned,
+   and resizable across all screen sizes (320px to 1400px+).
    ========================================================================= */
+
+/* Vertical Beam Flow Animation for Mobile Tube Visualizer */
+@keyframes photon-flow-vertical {
+  0% { top: 0%; opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { top: 88%; opacity: 0; }
+}
+
+@keyframes photon-scatter-vertical {
+  0% { top: 0%; transform: translateX(0); opacity: 0; }
+  25% { opacity: 1; transform: translateX(-6px); }
+  60% { opacity: 0.7; transform: translateX(8px); }
+  100% { top: 85%; transform: translateX(-3px); opacity: 0; }
+}
+
+/* -------------------------------------------------------------------------
+   BREAKPOINT 1: LARGE TABLETS & SMALL LAPTOPS (<= 1024px)
+   ------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
+  .main-content {
+    padding: 28px 20px 50px;
+  }
   .humidity-grid {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
   .net-stat-row {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
   .charts-grid {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
   .optical-metrics-strip {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
   .diagnostics-bar {
     grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
 }
 
+/* -------------------------------------------------------------------------
+   BREAKPOINT 2: MEDIUM TABLETS & PHABLETS (<= 768px)
+   ------------------------------------------------------------------------- */
 @media (max-width: 768px) {
+  /* Ambient lighting optimization */
+  .ambient {
+    filter: blur(90px);
+    opacity: 0.08;
+  }
+  .ambient-one { width: 280px; height: 280px; right: -40px; top: 60px; }
+  .ambient-two { width: 300px; height: 300px; left: -60px; top: 400px; }
+  .ambient-three { width: 250px; height: 250px; }
+
+  /* Top Navigation Bar */
   .topbar {
-    height: 72px;
-    padding: 0 16px;
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+  .brand {
+    gap: 10px;
+  }
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .brand-logo-img {
+    width: 26px;
+    height: 26px;
+  }
+  .brand-title strong {
+    font-size: 17px;
+  }
+  .brand-version {
+    font-size: 11px;
+    padding: 2px 6px;
   }
   .brand-copy small {
     display: none;
   }
-  .hide-on-mobile {
-    display: none;
+  .topbar-actions {
+    gap: 8px;
   }
-  .tube-diagram {
+  .btn-topbar-action {
+    padding: 8px 12px;
+    font-size: 11.5px;
+    border-radius: 8px;
+  }
+  .connection-pill {
+    padding: 7px 11px;
+    font-size: 10px;
+  }
+
+  /* Main Content Layout */
+  .main-content {
+    padding: 18px 14px 40px;
+  }
+
+  /* App Hero Banner */
+  .app-top-hero {
+    padding: 8px 0 22px;
+    margin-bottom: 24px;
+  }
+  .hero-main-title {
+    font-size: clamp(32px, 8.5vw, 46px);
+    margin: 10px 0 8px;
+  }
+  .hero-main-subtitle {
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .hero-quick-meta {
+    margin-top: 14px;
+    gap: 6px;
+  }
+  .meta-badge {
+    width: 100%;
+    font-size: 11px;
+    padding: 6px 11px;
+  }
+
+  /* Section Title Bars */
+  .dashboard-section {
+    margin-bottom: 32px;
+  }
+  .section-title-bar {
     flex-direction: column;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
   }
-  .ir-beam-strip {
-    width: 4px;
-    height: 40px;
+  .section-main-heading {
+    font-size: 22px;
   }
-  .beam-particle {
-    animation: none;
+  .section-subtext {
+    font-size: 12.5px;
   }
-  .status-hero-banner {
-    flex-direction: column;
-    text-align: center;
+  .section-live-indicator, .wavelength-badge {
+    font-size: 9.5px;
+    padding: 5px 12px;
   }
-  .status-verdict-title {
-    justify-content: center;
+  .history-counter {
+    font-size: 10px;
+    padding: 5px 12px;
   }
-  .welcome-card {
-    padding: 28px 20px;
+
+  /* Humidity Cards */
+  .humidity-box {
+    padding: 20px 16px;
+    border-radius: 16px;
   }
-  .welcome-title {
-    font-size: 28px;
+  .box-header {
+    margin-bottom: 16px;
   }
-  .welcome-actions {
-    flex-direction: column;
+  .badge-tag {
+    font-size: 13px;
+    padding: 4px 10px;
   }
-  .wizard-stepper {
-    display: none;
+  .badge-title {
+    font-size: 14px;
+  }
+  .reading-big-num {
+    font-size: clamp(38px, 10vw, 50px);
+  }
+  .temp-value-display strong {
+    font-size: 22px;
+  }
+  .box-secondary-reading {
+    padding: 12px 14px;
+  }
+
+  /* Net Difference Card */
+  .net-difference-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+  .net-diff-header {
+    margin-bottom: 16px;
+  }
+  .net-icon-pill {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .net-heading {
+    font-size: 19px;
+  }
+  .net-subheading {
+    font-size: 11.5px;
+  }
+  .net-big-number {
+    font-size: clamp(36px, 10vw, 48px);
   }
   .net-sub-metrics-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
   }
+  .sub-metric-item strong {
+    font-size: 19px;
+  }
+
+  /* Fuel Quality Card */
+  .fuel-status-card {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .status-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .threshold-tuning-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 12px;
+  }
+  .status-hero-banner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .status-icon-ring {
+    width: 76px;
+    height: 76px;
+    border-radius: 20px;
+  }
+  .status-icon-ring svg {
+    width: 42px;
+    height: 42px;
+  }
+  .status-verdict-title {
+    justify-content: center;
+    font-size: 13px;
+  }
+  .status-safe .verdict-word,
+  .status-not-safe .verdict-word {
+    font-size: 24px;
+  }
+  .status-headline {
+    font-size: clamp(19px, 5.5vw, 26px);
+  }
+  .status-explanation {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Optical Visualizer Flow (Vertical Stack on Handhelds) */
+  .optical-visualizer-box {
+    padding: 16px 12px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+  .vis-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+  .tube-diagram {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .diagram-component {
+    width: 100%;
+    max-width: 220px;
+  }
+  .comp-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+    border-radius: 12px;
+  }
+  .comp-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .diagram-component strong {
+    font-size: 12.5px;
+  }
+  .diagram-component small {
+    font-size: 9.5px;
+  }
+  .ir-beam-strip {
+    width: 4px;
+    height: 30px;
+    flex: none;
+    margin: 0 auto;
+    border-radius: 2px;
+    position: relative;
+    overflow: visible;
+  }
+  .beam-particle {
+    left: -2px !important;
+    top: 0;
+    width: 8px;
+    height: 8px;
+    animation: photon-flow-vertical 1.4s infinite linear;
+  }
+  .beam-scattered .beam-particle {
+    animation: photon-scatter-vertical 1.2s infinite ease-out;
+  }
+  .diagram-fuel-tube {
+    width: 100%;
+    max-width: 260px;
+    height: 92px;
+    border-radius: 14px;
+  }
+  .tube-liquid-layer {
+    font-size: 9.5px;
+    padding: 5px;
+  }
+  .tube-label {
+    font-size: 8.5px;
+    padding: 3px;
+  }
+
+  /* Optical Metrics Strip */
   .optical-metrics-strip {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
+  .opt-metric-cell {
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .opt-metric-cell strong {
+    font-size: 21px;
+  }
+
+  /* Charts */
+  .chart-panel {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+  .chart-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .chart-panel-header h3 {
+    font-size: 15px;
+  }
+  .chart-panel-header p {
+    font-size: 11.5px;
+  }
+  .chart-canvas-wrap {
+    height: 190px;
+  }
+
+  /* Diagnostics Bar & Footer */
   .diagnostics-bar {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 14px;
+    border-radius: 16px;
+    margin-top: 24px;
+  }
+  .app-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-top: 28px;
+    padding-top: 18px;
+  }
+  .footer-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .footer-right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .btn-footer-link {
+    margin-left: 0;
+  }
+
+  /* Wi-Fi Setup Modal */
+  .modal-backdrop {
+    padding: 12px;
+  }
+  .modal-dialog {
+    border-radius: 18px;
+    max-height: calc(100dvh - 24px);
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-icon-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+  .modal-title-wrap h3 {
+    font-size: 15.5px;
+  }
+  .wizard-stepper {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 10px 12px;
+  }
+  .step-bubble {
+    padding: 6px 4px;
+    justify-content: center;
+    border-radius: 6px;
+    gap: 0;
+  }
+  .step-label {
+    display: none;
+  }
+  .step-num {
+    font-size: 12px;
+  }
+  .wizard-content {
+    padding: 16px 14px;
+  }
+  .wizard-step-title h4 {
+    font-size: 17px;
+  }
+  .step-subtitle {
+    font-size: 12px;
+  }
+  .setup-step-body {
+    font-size: 13px;
+  }
+  .setup-tip-card {
+    padding: 12px;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .setup-highlight-box {
+    padding: 12px;
+  }
+  .setup-code-row {
+    font-size: 11.5px;
+    padding: 8px 10px;
+  }
+  .wizard-footer {
+    padding: 12px 14px;
+  }
+  .btn-wizard-nav {
+    padding: 9px 14px;
+    font-size: 12px;
+  }
+  .step-dots {
+    display: none;
+  }
+
+  /* Welcome Screen & Intro Screen */
+  .welcome-screen,
+  .intro-splash-screen {
+    padding: 20px 14px;
+  }
+  .welcome-screen-badge {
+    font-size: 9.5px;
+    padding: 5px 12px;
+    margin-bottom: 16px;
+  }
+  .welcome-logo-container {
+    width: 108px;
+    height: 108px;
+    margin-bottom: 16px;
+  }
+  .ring-outer-spin { width: 102px; height: 102px; }
+  .ring-middle-dashed { width: 114px; height: 114px; }
+  .welcome-logo-shield { width: 76px; height: 76px; border-radius: 22px; }
+  .logo-shield-emblem-img { width: 54px; height: 54px; }
+  .welcome-title-main {
+    font-size: clamp(28px, 8vw, 44px);
+    gap: 8px;
+  }
+  .welcome-title-e20 {
+    font-size: 0.8em;
+    padding: 3px 12px;
+    border-radius: 9px;
+  }
+  .welcome-tagline {
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .welcome-highlights {
+    gap: 6px;
+    margin: 16px 0 12px;
+  }
+  .welcome-highlight-pill {
+    padding: 6px 11px;
+    font-size: 11px;
+  }
+  .welcome-progress-section {
+    margin: 10px 0 16px;
+  }
+  .welcome-actions-row {
+    flex-direction: column;
+    width: 100%;
+    max-width: 290px;
+    gap: 9px;
+    margin-bottom: 12px;
+  }
+  .welcome-actions-row .btn-primary,
+  .welcome-actions-row .btn-secondary {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 13.5px;
+  }
+  .intro-skip-btn {
+    top: 14px;
+    right: 14px;
+    padding: 5px 11px;
+    font-size: 10.5px;
+  }
+  .intro-logo-wrap {
+    width: 108px;
+    height: 108px;
+    margin-bottom: 16px;
+  }
+  .intro-title {
+    font-size: clamp(28px, 8vw, 42px);
+  }
+  .intro-tagline {
+    font-size: 12.5px;
   }
 }
+
+/* -------------------------------------------------------------------------
+   BREAKPOINT 3: COMPACT SMARTPHONES (<= 480px: iPhone, Galaxy, Pixel)
+   ------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+  /* Ultra-smooth responsive header */
+  .topbar {
+    padding: 8px 12px;
+    min-height: 58px;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+  .brand-logo-img {
+    width: 24px;
+    height: 24px;
+  }
+  .brand-title strong {
+    font-size: 14.5px;
+  }
+  .brand-version {
+    font-size: 9.5px;
+    padding: 1px 5px;
+  }
+  .topbar-actions {
+    gap: 6px;
+  }
+  .btn-topbar-action {
+    padding: 6px 9px;
+    font-size: 10.5px;
+    gap: 5px;
+    border-radius: 7px;
+  }
+  .connection-pill {
+    padding: 5px 8px;
+    font-size: 9px;
+    gap: 5px;
+  }
+  .pulse-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* Content Spacing */
+  .main-content {
+    padding: 12px 10px 32px;
+  }
+
+  /* Hero Section */
+  .hero-eyebrow {
+    font-size: 9px;
+    gap: 6px;
+  }
+  .eyebrow-dash {
+    width: 18px;
+  }
+  .eyebrow-chip {
+    font-size: 8px;
+    padding: 2px 5px;
+  }
+  .hero-main-title {
+    font-size: 28px;
+  }
+  .hero-main-subtitle {
+    font-size: 12.5px;
+  }
+  .meta-badge {
+    font-size: 10px;
+    padding: 5px 9px;
+  }
+
+  /* Section Title Bar */
+  .section-number-tag {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+  .section-main-heading {
+    font-size: 18px;
+  }
+  .section-subtext {
+    font-size: 11.5px;
+  }
+
+  /* Reading Numbers */
+  .humidity-box,
+  .net-difference-card,
+  .fuel-status-card {
+    padding: 16px 12px;
+    border-radius: 14px;
+  }
+  .reading-big-num {
+    font-size: 38px;
+  }
+  .reading-unit {
+    font-size: 13px;
+  }
+  .net-big-number {
+    font-size: 36px;
+  }
+
+  /* Threshold controls wrap compactly */
+  .threshold-tuning-controls {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  .thresh-btn-calib {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+    margin-top: 4px;
+    padding: 5px;
+  }
+
+  /* Charts */
+  .chart-panel {
+    padding: 14px 10px;
+  }
+  .chart-canvas-wrap {
+    height: 160px;
+  }
+
+  /* Modal */
+  .modal-dialog {
+    border-radius: 16px;
+  }
+  .modal-header {
+    padding: 12px 14px;
+  }
+  .wizard-content {
+    padding: 14px 12px;
+  }
+  .wizard-footer {
+    padding: 10px 12px;
+  }
+  .btn-wizard-nav {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   BREAKPOINT 4: ULTRA-COMPACT SCREENS (<= 360px: iPhone SE, Galaxy Fold outer)
+   ------------------------------------------------------------------------- */
+@media (max-width: 360px) {
+  .topbar {
+    padding: 6px 8px;
+  }
+  .brand-title strong {
+    font-size: 13px;
+  }
+  .btn-topbar-action {
+    padding: 5px 7px;
+    font-size: 9.5px;
+  }
+  .connection-pill {
+    padding: 4px 6px;
+    font-size: 8.5px;
+  }
+  .hero-main-title {
+    font-size: 25px;
+  }
+  .reading-big-num {
+    font-size: 32px;
+  }
+  .net-big-number {
+    font-size: 32px;
+  }
+  .status-safe .verdict-word,
+  .status-not-safe .verdict-word {
+    font-size: 20px;
+  }
+}
+

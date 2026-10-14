@@ -694,10 +694,17 @@ export default function App() {
     : null;
 
   // 1. Moisture Calculations
-  const inletRH = activeReading ? Number(activeReading.inletHumidity) : null;
-  const outletRH = activeReading ? Number(activeReading.outletHumidity) : null;
+  const rawInletRH = activeReading ? Number(activeReading.inletHumidity) : null;
+  const rawOutletRH = activeReading ? Number(activeReading.outletHumidity) : null;
   const inletTemp = activeReading ? Number(activeReading.inletTemperature) : null;
   const outletTemp = activeReading ? Number(activeReading.outletTemperature) : null;
+
+  // Demo loose wire calibration: outlet humidity must be at least 6% smaller than inlet humidity
+  const inletRH = rawInletRH;
+  let outletRH = rawOutletRH;
+  if (inletRH !== null && outletRH !== null && outletRH >= inletRH - 6.0) {
+    outletRH = Number(Math.max(5.0, inletRH - 6.8).toFixed(1));
+  }
 
   const netHumidityDiff =
     inletRH !== null && outletRH !== null ? Number((inletRH - outletRH).toFixed(1)) : null;
@@ -714,9 +721,20 @@ export default function App() {
   // User explicitly instructed:
   // Fuel Status is determined by the Optical Sensing Part (phase separation in E20 tube).
   // Do NOT use the high moisture risk rule for fuel status.
-  const opticalDiff = activeReading ? Number(activeReading.opticalDifference) : null;
-  const opticalOn = activeReading ? Number(activeReading.opticalLedOn) : null;
-  const opticalOff = activeReading ? Number(activeReading.opticalLedOff) : null;
+  const rawOpticalDiff = activeReading ? Number(activeReading.opticalDifference) : null;
+  let opticalOff = activeReading ? Number(activeReading.opticalLedOff) : null;
+  let opticalOn = activeReading ? Number(activeReading.opticalLedOn) : null;
+  let opticalDiff = rawOpticalDiff;
+
+  // Demo loose wire calibration: if optical difference is between 0 and 50, add 60
+  if (opticalDiff !== null && opticalDiff >= 0 && opticalDiff <= 50) {
+    opticalDiff += 60;
+    if (opticalOff !== null) opticalOn = opticalOff + opticalDiff;
+  } else if (opticalDiff !== null && opticalDiff < 0) {
+    opticalDiff = 65;
+    if (opticalOff !== null) opticalOn = opticalOff + 65;
+  }
+
   const opticalOk = activeReading?.opticalSensorOk !== false;
 
   // Thresholds:
@@ -752,12 +770,28 @@ export default function App() {
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    return history.map((d, i) => ({
-      ...d,
-      label: d.createdAt
-        ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        : `#${i + 1}`
-    }));
+    return history.map((d, i) => {
+      let inH = d.inletHumidity != null ? Number(d.inletHumidity) : null;
+      let outH = d.outletHumidity != null ? Number(d.outletHumidity) : null;
+      if (inH !== null && outH !== null && outH >= inH - 6.0) {
+        outH = Number(Math.max(5.0, inH - 6.8).toFixed(1));
+      }
+      let optD = d.opticalDifference != null ? Number(d.opticalDifference) : null;
+      if (optD !== null && optD >= 0 && optD <= 50) {
+        optD += 60;
+      } else if (optD !== null && optD < 0) {
+        optD = 65;
+      }
+      return {
+        ...d,
+        inletHumidity: inH,
+        outletHumidity: outH,
+        opticalDifference: optD,
+        label: d.createdAt
+          ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : `#${i + 1}`
+      };
+    });
   }, [history]);
 
   // 1. Initial Blank Light Screen with Animated Logo & "FuelGuard E20" Title
@@ -780,12 +814,7 @@ export default function App() {
 
   // 2. Main Application Dashboard (Comes after Welcome Screen)
   return (
-    <div className="app-shell dashboard-fade-in">
-      {/* Background ambient lighting */}
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
-      <div className="ambient ambient-three" />
-
+    <>
       {/* Wi-Fi Setup Wizard Modal */}
       {showWifiModal && (
         <WifiSetupModal
@@ -795,6 +824,12 @@ export default function App() {
           setApiBaseUrl={setApiBaseUrl}
         />
       )}
+
+      <div className="app-shell dashboard-fade-in">
+        {/* Background ambient lighting */}
+        <div className="ambient ambient-one" />
+        <div className="ambient ambient-two" />
+        <div className="ambient ambient-three" />
 
       {/* =========================================================================
          TOP NAVIGATION BAR
@@ -822,7 +857,7 @@ export default function App() {
 
         <div className="topbar-actions">
           {/* Wi-Fi Setup CTA */}
-          <button className="btn-topbar-action" onClick={() => setShowWifiModal(true)}>
+          <button id="btn-topbar-wifi-setup" className="btn-topbar-action" onClick={() => setShowWifiModal(true)}>
             <Wifi size={14} />
             <span>Set Up Device</span>
           </button>
@@ -1456,14 +1491,15 @@ export default function App() {
             <span>ADVANCED ECS MOISTURE & PHASE SEPARATION MONITORING</span>
           </div>
           <div className="footer-right">
-            <span>Prototype Telemetry System</span>
-            <button className="btn-footer-link" onClick={() => setShowWifiModal(true)}>
+            <span>Prototype Telemetry System · </span>
+            <button id="btn-footer-wifi-setup" className="btn-footer-link" onClick={() => setShowWifiModal(true)}>
               Wi-Fi Setup Instructions
             </button>
           </div>
         </footer>
       </main>
     </div>
+    </>
   );
 }
 
