@@ -238,76 +238,8 @@ button {
 }
 
 /* =========================================================================
-   DARK OLIVE SIMULATOR & ACTION BUTTONS
+   TOPBAR ACTION BUTTONS
    ========================================================================= */
-.demo-toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--olive-light-pill);
-  border: 1px solid var(--line);
-  padding: 4px;
-  border-radius: 999px;
-}
-
-.btn-pill-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 13px;
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: transparent;
-  transition: all 0.25s ease;
-}
-
-.btn-pill-toggle.active {
-  background: var(--olive-dark);
-  color: #ffffff;
-  box-shadow: 0 3px 10px rgba(27, 53, 36, 0.3);
-}
-
-.demo-scenario-pills {
-  display: flex;
-  gap: 4px;
-  padding-right: 4px;
-}
-
-.scenario-btn {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--text-secondary);
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.scenario-btn.selected.safe {
-  background: var(--olive-dark);
-  color: #a3e635;
-  border-color: var(--olive-border);
-  box-shadow: 0 2px 8px rgba(27, 53, 36, 0.2);
-}
-
-.scenario-btn.selected.danger {
-  background: #7f1d1d;
-  color: #fecaca;
-  animation: pulse-danger 1.8s infinite;
-}
-
-.scenario-btn.selected.warn {
-  background: #78350f;
-  color: #fde68a;
-}
-
-/* Topbar Dark Olive Green Action Buttons */
 .btn-topbar-action {
   display: flex;
   align-items: center;

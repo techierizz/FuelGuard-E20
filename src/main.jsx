@@ -50,51 +50,7 @@ const timeLabel = (iso) => {
     : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
 
-// Simulation presets for instant interactive verification & evaluation
-const DEMO_PRESETS = {
-  safe: {
-    inletHumidity: 68.4,
-    outletHumidity: 22.8,
-    inletTemperature: 29.2,
-    outletTemperature: 28.5,
-    opticalLedOff: 0,
-    opticalLedOn: 86,
-    opticalDifference: 86, // Calibrated for clear tube bench reading!
-    moistureSensorOk: true,
-    opticalSensorOk: true,
-    firmwareUptimeMs: 342000,
-    deviceId: 'fuelguard-001',
-    receivedAt: new Date().toISOString()
-  },
-  phase_separated: {
-    inletHumidity: 78.5,
-    outletHumidity: 31.2,
-    inletTemperature: 30.1,
-    outletTemperature: 29.6,
-    opticalLedOff: 0,
-    opticalLedOn: 12,
-    opticalDifference: 12, // Drops to near zero (blocked / cloudy emulsion) -> NOT SAFE!
-    moistureSensorOk: true,
-    opticalSensorOk: true,
-    firmwareUptimeMs: 348000,
-    deviceId: 'fuelguard-001',
-    receivedAt: new Date().toISOString()
-  },
-  saturated_desiccant: {
-    inletHumidity: 84.1,
-    outletHumidity: 79.5,
-    inletTemperature: 31.0,
-    outletTemperature: 30.8,
-    opticalLedOff: 0,
-    opticalLedOn: 88,
-    opticalDifference: 88, // Clear optical transmission, but desiccant bed saturated
-    moistureSensorOk: true,
-    opticalSensorOk: true,
-    firmwareUptimeMs: 354000,
-    deviceId: 'fuelguard-001',
-    receivedAt: new Date().toISOString()
-  }
-};
+// Telemetry formatting utilities
 
 /* =========================================================================
    0. MINIMAL INTRO SCREEN (Completely blank light background initially,
@@ -650,7 +606,7 @@ function WifiSetupModal({ onClose, isOnline, apiBaseUrl, setApiBaseUrl }) {
 export default function App() {
   const [latest, setLatest] = useState(null);
   const [history, setHistory] = useState([]);
-  const [apiState, setApiState] = useState('connecting'); // 'online' | 'stale' | 'waiting' | 'error' | 'demo'
+  const [apiState, setApiState] = useState('connecting'); // 'online' | 'stale' | 'waiting' | 'error'
   const [lastPoll, setLastPoll] = useState(null);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now());
@@ -658,8 +614,6 @@ export default function App() {
   // Interactive controls & screen stages: 'intro' -> 'welcome' -> 'dashboard'
   const [screenStage, setScreenStage] = useState('intro');
   const [showWifiModal, setShowWifiModal] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(true);
-  const [demoScenario, setDemoScenario] = useState('safe');
   const [opticalThreshold, setOpticalThreshold] = useState(() => {
     try {
       const saved = localStorage.getItem('fg_threshold');
@@ -700,9 +654,8 @@ export default function App() {
 
   const getCleanBase = () => (apiBaseUrl ? apiBaseUrl.trim().replace(/\/+$/, '') : '');
 
-  // Real-time API Poller
+  // Real-time API Poller (Always Live from Cloud / Hardware)
   async function loadLatest() {
-    if (isDemoMode) return;
     try {
       const base = getCleanBase();
       const r = await fetch(`${base}/api/latest`, { cache: 'no-store' });
@@ -712,9 +665,8 @@ export default function App() {
       try {
         data = JSON.parse(text);
       } catch {
-        // Local Vite server returns raw JS instead of executed serverless function
         setApiState('waiting');
-        setError('Local preview mode: API endpoints require Vercel runtime. Toggle "SIMULATOR ON" above to test.');
+        setError('Awaiting live cloud telemetry');
         return;
       }
       setLatest(data.reading || null);
@@ -728,7 +680,6 @@ export default function App() {
   }
 
   async function loadHistory() {
-    if (isDemoMode) return;
     try {
       const base = getCleanBase();
       const r = await fetch(`${base}/api/history?limit=60`, { cache: 'no-store' });
@@ -745,51 +696,19 @@ export default function App() {
     }
   }
 
+  // Live polling interval (3s for latest, 15s for trend history)
   useEffect(() => {
-    if (!isDemoMode) {
-      loadLatest();
-      loadHistory();
-      const a = setInterval(loadLatest, 3000);
-      const b = setInterval(loadHistory, 15000);
-      const c = setInterval(() => setNow(Date.now()), 1000);
-      return () => {
-        clearInterval(a);
-        clearInterval(b);
-        clearInterval(c);
-      };
-    } else {
-      // Demo mode ticks clock
-      const c = setInterval(() => setNow(Date.now()), 1000);
-      return () => clearInterval(c);
-    }
-  }, [isDemoMode]);
-
-  // Handle switching Demo Scenario
-  useEffect(() => {
-    if (isDemoMode) {
-      const preset = DEMO_PRESETS[demoScenario] || DEMO_PRESETS.safe;
-      setLatest({ ...preset, receivedAt: new Date().toISOString() });
-      setApiState('online');
-      setError('');
-      setLastPoll(Date.now());
-
-      // Generate synthetic history for charts
-      const synHist = [];
-      const baseOpt = preset.opticalDifference;
-      const baseIn = preset.inletHumidity;
-      const baseOut = preset.outletHumidity;
-      for (let i = 20; i >= 0; i--) {
-        const time = new Date(Date.now() - i * 5000).toISOString();
-        synHist.push({
-          inletHumidity: Number((baseIn + (Math.sin(i) * 1.5)).toFixed(1)),
-          outletHumidity: Number((baseOut + (Math.cos(i) * 0.9)).toFixed(1)),
-          opticalDifference: Math.round(baseOpt + (Math.sin(i) * 45)),
-          createdAt: time
-        });
-      }
-      setHistory(synHist);
-    }
-  }, [isDemoMode, demoScenario]);
+    loadLatest();
+    loadHistory();
+    const a = setInterval(loadLatest, 3000);
+    const b = setInterval(loadHistory, 15000);
+    const c = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      clearInterval(a);
+      clearInterval(b);
+      clearInterval(c);
+    };
+  }, [apiBaseUrl]);
 
   // Derived Telemetry Values
   const activeReading = latest;
@@ -927,41 +846,6 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
-          {/* Quick Demo Simulator Toggle */}
-          <div className="demo-toggle-wrap">
-            <button
-              className={`btn-pill-toggle ${isDemoMode ? 'active' : ''}`}
-              onClick={() => setIsDemoMode(!isDemoMode)}
-              title="Toggle interactive simulation demo mode"
-            >
-              <Zap size={13} />
-              <span>{isDemoMode ? 'SIMULATOR ON' : 'LIVE API'}</span>
-            </button>
-
-            {isDemoMode && (
-              <div className="demo-scenario-pills">
-                <button
-                  className={`scenario-btn ${demoScenario === 'safe' ? 'selected safe' : ''}`}
-                  onClick={() => setDemoScenario('safe')}
-                >
-                  Safe E20
-                </button>
-                <button
-                  className={`scenario-btn ${demoScenario === 'phase_separated' ? 'selected danger' : ''}`}
-                  onClick={() => setDemoScenario('phase_separated')}
-                >
-                  Phase Separated
-                </button>
-                <button
-                  className={`scenario-btn ${demoScenario === 'saturated_desiccant' ? 'selected warn' : ''}`}
-                  onClick={() => setDemoScenario('saturated_desiccant')}
-                >
-                  Saturated Silica
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Wi-Fi Setup CTA */}
           <button className="btn-topbar-action" onClick={() => setShowWifiModal(true)}>
             <Wifi size={14} />
@@ -992,15 +876,13 @@ export default function App() {
           <div className={`connection-pill ${isOnline ? 'is-online' : apiState === 'stale' ? 'is-stale' : ''}`}>
             <span className="pulse-dot" />
             <span>
-              {isDemoMode
-                ? 'SIMULATION'
-                : apiState === 'online'
+              {apiState === 'online'
                 ? 'DEVICE ONLINE'
                 : apiState === 'stale'
                 ? 'DATA STALE'
                 : apiState === 'waiting'
-                ? 'AWAITING DEVICE'
-                : 'CLOUD ERROR'}
+                ? 'AWAITING TELEMETRY'
+                : 'CONNECTING...'}
             </span>
           </div>
         </div>
@@ -1011,10 +893,10 @@ export default function App() {
          ========================================================================= */}
       <main className="main-content">
         {/* Error notification if any */}
-        {error && !isDemoMode && (
+        {error && (
           <div className="alert-banner">
             <CircleAlert size={18} />
-            <span>{error}. Check Vercel serverless environment variables or use the simulator above.</span>
+            <span>{error}{error.endsWith('.') ? '' : '.'} Connect ESP32 device or verify cloud API connection.</span>
             <button
               onClick={() => {
                 loadLatest();
