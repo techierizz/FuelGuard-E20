@@ -1,0 +1,13 @@
+{
+  "appId": "com.fuelguard.e20",
+  "appName": "FuelGuard E20",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FuelGuard E20</string>
+    <string name="title_activity_main">FuelGuard E20</string>
+    <string name="package_name">com.fuelguard.e20</string>
+    <string name="custom_url_scheme">com.fuelguard.e20</string>
+</resources>
