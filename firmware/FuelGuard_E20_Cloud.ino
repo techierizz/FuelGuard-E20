@@ -24,11 +24,16 @@
     - '-' -> Decrease safety threshold by 10 counts
     - 't' -> Toggle IR LED permanently ON/OFF (Phone camera purple glow test)
     - 's' -> Trigger immediate cloud telemetry upload
+    - 'w' -> Reset Wi-Fi credentials & launch 'FuelGuard-Setup' portal
+    - 'r' -> Reboot ESP32
     - 'h' -> Print hardware pinout & troubleshooting guide
   ======================================================================================
 */
 
 #include <WiFi.h>
+#include <WebServer.h>
+#include <DNSServer.h>
+#include <Preferences.h>
 #include <HTTPClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h>
@@ -63,6 +68,14 @@ int calibratedBaseline = 84;                 // Initial default empty tube basel
 // ------------------- GLOBALS ---------------------------
 DHT dhtInlet(DHT_INLET_PIN, DHTTYPE);
 DHT dhtOutlet(DHT_OUTLET_PIN, DHTTYPE);
+
+Preferences preferences;
+WebServer webServer(80);
+DNSServer dnsServer;
+
+bool isPortalActive = false;
+String currentSSID = "";
+String currentPass = "";
 
 unsigned long lastSend = 0;
 unsigned long uploadCycleCount = 0;
@@ -103,17 +116,150 @@ bool measureOptical(uint16_t &offVal, uint16_t &onVal, int32_t &delta) {
   return (offVal > 0 || onVal > 0) && abs(delta) >= 3;
 }
 
-// Wi-Fi Connection Manager
+// -------------------------------------------------------------
+// WI-FI PROVISIONING & CAPTIVE PORTAL HANDLERS
+// -------------------------------------------------------------
+
+void handleRoot() {
+  int n = WiFi.scanNetworks();
+  String options = "";
+  for (int i = 0; i < n; i++) {
+    String name = WiFi.SSID(i);
+    if (name.length() > 0) {
+      options += "<option value=\"" + name + "\">" + name + " (" + String(WiFi.RSSI(i)) + " dBm)</option>";
+    }
+  }
+  options += "<option value=\"__MANUAL__\">-- Enter Custom / Hidden SSID --</option>";
+
+  String page = F("<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
+                  "<title>FuelGuard E20 Wi-Fi Setup</title><style>"
+                  "* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }"
+                  "body { background: #f4f7f2; color: #1b3524; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }"
+                  ".card { background: #ffffff; border: 1.5px solid #d1fae5; border-radius: 20px; max-width: 420px; width: 100%; padding: 28px 24px; box-shadow: 0 10px 30px rgba(27,53,36,0.08); }"
+                  ".badge { display: inline-block; background: #e2f5ea; color: #15803d; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.05em; margin-bottom: 12px; }"
+                  "h1 { font-size: 24px; font-weight: 800; color: #1b3524; margin-bottom: 6px; }"
+                  "p { font-size: 13.5px; color: #4b6b54; margin-bottom: 22px; line-height: 1.5; }"
+                  "label { display: block; font-size: 12px; font-weight: 700; color: #2d5038; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }"
+                  "select, input[type=text], input[type=password] { width: 100%; padding: 12px 14px; border: 1.5px solid #d1d5db; border-radius: 12px; font-size: 14px; margin-bottom: 16px; outline: none; background: #fafafa; }"
+                  "select:focus, input:focus { border-color: #1b3524; background: #fff; }"
+                  "button { width: 100%; padding: 14px; background: #1b3524; color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; margin-top: 6px; }"
+                  "button:hover { background: #284c34; }"
+                  ".footer { text-align: center; margin-top: 20px; font-size: 11px; color: #9ca3af; }"
+                  "</style></head><body><div class=\"card\">"
+                  "<span class=\"badge\">ESP32-S3 PROVISIONING</span>"
+                  "<h1>FuelGuard E20</h1>"
+                  "<p>Connect your sensor hardware to your vehicle or home Wi-Fi network to stream live cloud telemetry.</p>"
+                  "<form method=\"POST\" action=\"/save\">"
+                  "<label>Select Wi-Fi Network (SSID)</label>"
+                  "<select name=\"ssid\" id=\"ssid\" onchange=\"checkManual(this.value)\">");
+  page += options;
+  page += F("</select><div id=\"manualDiv\" style=\"display:none;\">"
+            "<label>Enter Custom Network Name</label>"
+            "<input type=\"text\" name=\"manual_ssid\" placeholder=\"Wi-Fi Name\">"
+            "</div><label>Wi-Fi Password</label>"
+            "<input type=\"password\" name=\"password\" placeholder=\"Enter Wi-Fi password\">"
+            "<button type=\"submit\">Save & Connect Device</button>"
+            "</form><div class=\"footer\">FuelGuard E20 · ASTM D4814 Standards</div></div>"
+            "<script>function checkManual(v){document.getElementById('manualDiv').style.display=(v==='__MANUAL__')?'block':'none';}</script>"
+            "</body></html>");
+
+  webServer.send(200, "text/html", page);
+}
+
+void handleSave() {
+  String chosenSSID = webServer.arg("ssid");
+  if (chosenSSID == "__MANUAL__" || chosenSSID.length() == 0) {
+    chosenSSID = webServer.arg("manual_ssid");
+  }
+  String chosenPass = webServer.arg("password");
+
+  if (chosenSSID.length() > 0) {
+    preferences.begin("fuelguard", false);
+    preferences.putString("ssid", chosenSSID);
+    preferences.putString("pass", chosenPass);
+    preferences.end();
+
+    String reply = F("<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
+                     "<title>Credentials Saved</title><style>"
+                     "body { background: #f4f7f2; color: #1b3524; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; font-family: sans-serif; text-align: center; }"
+                     ".card { background: #ffffff; border-radius: 20px; max-width: 400px; width: 100%; padding: 32px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1.5px solid #d1fae5; }"
+                     "h2 { font-size: 22px; margin-bottom: 8px; color: #15803d; }"
+                     "p { font-size: 14px; color: #4b6b54; line-height: 1.5; margin-bottom: 16px; }"
+                     "</style></head><body><div class=\"card\">"
+                     "<h2>Credentials Saved!</h2>"
+                     "<p>FuelGuard E20 is restarting and connecting to <strong>");
+    reply += chosenSSID;
+    reply += F("</strong>.</p><p>Reconnect your phone to your normal Wi-Fi and open the FuelGuard dashboard.</p>"
+               "</div></body></html>");
+
+    webServer.send(200, "text/html", reply);
+    delay(1500);
+    ESP.restart();
+  } else {
+    webServer.send(400, "text/plain", "Missing SSID. Please go back and select a network.");
+  }
+}
+
+void handleNotFound() {
+  webServer.sendHeader("Location", "http://192.168.4.1/", true);
+  webServer.send(302, "text/plain", "");
+}
+
+void startCaptivePortal() {
+  isPortalActive = true;
+  WiFi.mode(WIFI_AP);
+  IPAddress apIP(192, 168, 4, 1);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  WiFi.softAP("FuelGuard-Setup");
+
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(53, "*", apIP);
+
+  webServer.on("/", HTTP_GET, handleRoot);
+  webServer.on("/save", HTTP_POST, handleSave);
+  webServer.on("/generate_204", HTTP_GET, handleRoot);       // Android captive portal detect
+  webServer.on("/hotspot-detect.html", HTTP_GET, handleRoot); // Apple captive portal detect
+  webServer.onNotFound(handleNotFound);
+  webServer.begin();
+
+  Serial.println(F("\n=================================================================="));
+  Serial.println(F(">>> [PROVISIONING PORTAL STARTED]"));
+  Serial.println(F("    1. Connect your phone / laptop to Wi-Fi: \"FuelGuard-Setup\""));
+  Serial.println(F("    2. Open your web browser and navigate to: http://192.168.4.1"));
+  Serial.println(F("    3. Select your Wi-Fi network and enter password."));
+  Serial.println(F("==================================================================\n"));
+}
+
 void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
 
+  // Load saved credentials from NVS (Preferences)
+  preferences.begin("fuelguard", true);
+  String savedSSID = preferences.getString("ssid", "");
+  String savedPass = preferences.getString("pass", "");
+  preferences.end();
+
+  if (savedSSID.length() > 0) {
+    currentSSID = savedSSID;
+    currentPass = savedPass;
+    Serial.printf("\n[WiFi] Using saved NVS credentials for: \"%s\"\n", currentSSID.c_str());
+  } else if (String(WIFI_SSID) != "YOUR_WIFI_NAME" && String(WIFI_SSID).length() > 0) {
+    currentSSID = String(WIFI_SSID);
+    currentPass = String(WIFI_PASSWORD);
+    Serial.printf("\n[WiFi] Using code-configured credentials for: \"%s\"\n", currentSSID.c_str());
+  } else {
+    Serial.println(F("\n[WiFi] No Wi-Fi credentials found in flash memory or code."));
+    startCaptivePortal();
+    return;
+  }
+
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(currentSSID.c_str(), currentPass.c_str());
 
-  Serial.printf("\n[WiFi] Connecting to \"%s\"", WIFI_SSID);
+  Serial.printf("[WiFi] Connecting to \"%s\"", currentSSID.c_str());
   unsigned long started = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - started < 15000) {
+  while (WiFi.status() != WL_CONNECTED && millis() - started < 12000) {
     delay(500);
     Serial.print('.');
   }
@@ -122,9 +268,10 @@ void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("[WiFi] Connected successfully! IP: %s | RSSI: %d dBm\n\n",
                   WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    isPortalActive = false;
   } else {
-    Serial.println(F("[WiFi] Could not connect to Wi-Fi. (Will retry on next cycle)"));
-    Serial.println(F("       Note: Sensor readings and local calibration will continue running offline."));
+    Serial.println(F("[WiFi] Connection failed! Starting 'FuelGuard-Setup' AP for smartphone setup..."));
+    startCaptivePortal();
   }
 }
 
@@ -164,6 +311,8 @@ void printHeader() {
   Serial.println(F("    '-' -> Decrease threshold by 10 counts"));
   Serial.println(F("    't' -> Toggle IR LED permanently ON/OFF (Phone camera test)"));
   Serial.println(F("    's' -> Trigger immediate cloud telemetry sync"));
+  Serial.println(F("    'w' -> Erase saved Wi-Fi & launch 'FuelGuard-Setup' AP"));
+  Serial.println(F("    'r' -> Reboot ESP32"));
   Serial.println(F("    'h' -> Pinout & Troubleshooting guide"));
   Serial.println(F("================================================================================\n"));
 }
@@ -269,11 +418,33 @@ void setup() {
 }
 
 void loop() {
+  // If in Captive Portal mode, handle DNS queries and web clients
+  if (isPortalActive) {
+    dnsServer.processNextRequest();
+    webServer.handleClient();
+    delay(5);
+    return;
+  }
+
   // Check for interactive user commands from Serial Monitor
   if (Serial.available()) {
     char cmd = Serial.read();
 
-    if (cmd == 'b' || cmd == 'B') {
+    if (cmd == 'w' || cmd == 'W') {
+      Serial.println(F("\n>>> [RESET WI-FI] Clearing saved credentials from flash memory..."));
+      preferences.begin("fuelguard", false);
+      preferences.clear();
+      preferences.end();
+      Serial.println(F(">>> Credentials erased! Restarting into 'FuelGuard-Setup' AP..."));
+      delay(1000);
+      ESP.restart();
+      return;
+    } else if (cmd == 'r' || cmd == 'R') {
+      Serial.println(F("\n>>> [REBOOT] Restarting ESP32..."));
+      delay(500);
+      ESP.restart();
+      return;
+    } else if (cmd == 'b' || cmd == 'B') {
       runAutoCalibration();
       return;
     } else if (cmd == '+') {
