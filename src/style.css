@@ -1835,68 +1835,6 @@ button {
   right: -80px;
 }
 
-/* Quick Top Controls: Replay Intro + Skip Button */
-.welcome-top-controls {
-  position: absolute;
-  top: 24px;
-  right: 28px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.welcome-screen-replay-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--olive-deep);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--line);
-  padding: 8px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(10px);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.welcome-screen-replay-btn:hover {
-  background: var(--olive-light-pill);
-  border-color: var(--olive-main);
-  transform: translateY(-1px);
-}
-
-.welcome-screen-skip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--olive-deep);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--line);
-  padding: 8px 16px;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(10px);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.welcome-screen-skip:hover {
-  background: var(--olive-light-pill);
-  border-color: var(--olive-main);
-  transform: translateX(2px);
-  box-shadow: var(--shadow-md);
-}
-
 .welcome-stage {
   max-width: 700px;
   width: 100%;

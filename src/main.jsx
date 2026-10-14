@@ -159,7 +159,7 @@ function IntroSplashScreen({ onComplete }) {
 /* =========================================================================
    1. WELCOME / SPLASH SCREEN (Light Bg, Animated Logo & Title)
    ========================================================================= */
-function WelcomeScreen({ onEnter, onOpenWifiSetup, onReplayIntro }) {
+function WelcomeScreen({ onEnter, onOpenWifiSetup }) {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('Initializing FuelGuard E20 System...');
   const [isExiting, setIsExiting] = useState(false);
@@ -197,13 +197,13 @@ function WelcomeScreen({ onEnter, onOpenWifiSetup, onReplayIntro }) {
     }, 450);
   };
 
-  // Optional relaxed auto-advance (12 seconds) so user has plenty of time to view the screen
+  // Automated transition to dashboard after startup sequence completes (1.5s at 100%)
   useEffect(() => {
     if (progress === 100) {
-      const idleTimer = setTimeout(() => {
+      const autoTimer = setTimeout(() => {
         handleEnter();
-      }, 12000);
-      return () => clearTimeout(idleTimer);
+      }, 1500);
+      return () => clearTimeout(autoTimer);
     }
   }, [progress]);
 
@@ -213,30 +213,6 @@ function WelcomeScreen({ onEnter, onOpenWifiSetup, onReplayIntro }) {
       <div className="welcome-screen-ambient ambient-top-left" />
       <div className="welcome-screen-ambient ambient-center" />
       <div className="welcome-screen-ambient ambient-bottom-right" />
-
-      {/* Quick Controls: Replay Intro & Skip button in top corner */}
-      <div className="welcome-top-controls">
-        {onReplayIntro && (
-          <button
-            id="btn-replay-intro"
-            className="welcome-screen-replay-btn"
-            onClick={onReplayIntro}
-            title="Replay animated intro splash"
-          >
-            <Sparkles size={13} />
-            <span>Replay Intro</span>
-          </button>
-        )}
-        <button
-          id="btn-skip-intro"
-          className="welcome-screen-skip"
-          onClick={handleEnter}
-          title="Skip intro and open dashboard"
-        >
-          <span>Skip to Dashboard</span>
-          <ChevronRight size={14} />
-        </button>
-      </div>
 
       <div className="welcome-stage">
         {/* Top Eyebrow Tag */}
@@ -794,7 +770,6 @@ export default function App() {
     return (
       <WelcomeScreen
         onEnter={() => setScreenStage('dashboard')}
-        onReplayIntro={() => setScreenStage('intro')}
         onOpenWifiSetup={() => {
           setScreenStage('dashboard');
           setShowWifiModal(true);
@@ -850,26 +825,6 @@ export default function App() {
           <button className="btn-topbar-action" onClick={() => setShowWifiModal(true)}>
             <Wifi size={14} />
             <span>Set Up Device</span>
-          </button>
-
-          {/* Replay Intro CTA */}
-          <button
-            className="btn-topbar-action ghost"
-            onClick={() => setScreenStage('intro')}
-            title="Replay Animated Intro Screen"
-          >
-            <Sparkles size={14} />
-            <span className="hide-on-mobile">Intro</span>
-          </button>
-
-          {/* Welcome Screen Re-open CTA */}
-          <button
-            className="btn-topbar-action ghost"
-            onClick={() => setScreenStage('welcome')}
-            title="Show Welcome Overview"
-          >
-            <ShieldCheck size={14} />
-            <span className="hide-on-mobile">Welcome</span>
           </button>
 
           {/* Connection status pill */}
