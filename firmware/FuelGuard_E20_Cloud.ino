@@ -47,11 +47,11 @@
 
 // ------------------- CLOUD & NETWORK CONFIG ------------
 // 1. Enter your Wi-Fi router or Phone Mobile Hotspot details:
-const char* WIFI_SSID     = "YOUR_WIFI_NAME";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = "iQOO Z9 5G";
+const char* WIFI_PASSWORD = "amrit123";
 
 // 2. Your deployed Vercel endpoint:
-const char* API_URL       = "https://fuelguard-e20.vercel.app/api/ingest";
+const char* API_URL       = "https://fuel-guard-e20.vercel.app/api/ingest";
 
 // 3. Security token (matches DEVICE_TOKEN on Vercel):
 const char* DEVICE_TOKEN  = "FuelGuard_Secret_Key_2026";
