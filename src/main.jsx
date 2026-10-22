@@ -394,6 +394,15 @@ function WifiSetupModal({ onClose, isOnline, apiBaseUrl, setApiBaseUrl }) {
                 {copiedText === 'IP copied!' ? 'Copied!' : 'Copy'}
               </button>
             </div>
+            <a
+              href="http://192.168.4.1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-open-portal"
+            >
+              <span>Launch 192.168.4.1 Portal</span>
+              <ExternalLink size={13} />
+            </a>
           </div>
           <p className="setup-subtext">
             The captive portal will load a clean configuration page titled <strong>"FuelGuard E20 Wi-Fi Provisioning"</strong>.
@@ -857,15 +866,16 @@ export default function App() {
 
         <div className="topbar-actions">
           {/* Wi-Fi Setup CTA */}
-          <button id="btn-topbar-wifi-setup" className="btn-topbar-action" onClick={() => setShowWifiModal(true)}>
+          <button id="btn-topbar-wifi-setup" className="btn-topbar-action" onClick={() => setShowWifiModal(true)} title="Set Up Device Wi-Fi">
             <Wifi size={14} />
-            <span>Set Up Device</span>
+            <span className="btn-action-label-full">Set Up Device</span>
+            <span className="btn-action-label-short">Setup</span>
           </button>
 
           {/* Connection status pill */}
           <div className={`connection-pill ${isOnline ? 'is-online' : apiState === 'stale' ? 'is-stale' : ''}`}>
             <span className="pulse-dot" />
-            <span>
+            <span className="conn-text-full">
               {apiState === 'online'
                 ? 'DEVICE ONLINE'
                 : apiState === 'stale'
@@ -873,6 +883,15 @@ export default function App() {
                 : apiState === 'waiting'
                 ? 'AWAITING TELEMETRY'
                 : 'CONNECTING...'}
+            </span>
+            <span className="conn-text-short">
+              {apiState === 'online'
+                ? 'ONLINE'
+                : apiState === 'stale'
+                ? 'STALE'
+                : apiState === 'waiting'
+                ? 'AWAITING'
+                : 'SYNCING'}
             </span>
           </div>
         </div>
@@ -937,7 +956,7 @@ export default function App() {
         {/* =========================================================================
            SECTION 1: HUMIDITY CENTER
            ========================================================================= */}
-        <section className="dashboard-section">
+        <section id="section-humidity" className="dashboard-section">
           <div className="section-title-bar">
             <div className="section-title-wrap">
               <div className="section-number-tag">01</div>
@@ -1154,7 +1173,7 @@ export default function App() {
         {/* =========================================================================
            SECTION 2: FUEL QUALITY CENTER
            ========================================================================= */}
-        <section className="dashboard-section">
+        <section id="section-fuel" className="dashboard-section">
           <div className="section-title-bar">
             <div className="section-title-wrap">
               <div className="section-number-tag purple">02</div>
@@ -1177,15 +1196,19 @@ export default function App() {
               <div className="status-top-bar">
                 <span className="status-title-kicker">AUTOMATED FUEL INTEGRITY DIAGNOSTIC</span>
                 <div className="threshold-tuning-controls">
-                  <span className="thresh-label">SAFETY THRESHOLD:</span>
-                  <button className="thresh-btn" onClick={() => updateThreshold(opticalThreshold - 5)} title="Decrease threshold by 5 counts">-</button>
-                  <strong className="thresh-val">{opticalThreshold} ADC</strong>
-                  <button className="thresh-btn" onClick={() => updateThreshold(opticalThreshold + 5)} title="Increase threshold by 5 counts">+</button>
-                  <button className="thresh-btn-calib" onClick={handleAutoCalibrate} title="Auto-calibrate threshold to 60% of current tube reading">
-                    <Sparkles size={12} />
-                    <span>Calibrate to Current</span>
-                  </button>
-                  {calibratedNotice && <span className="calib-notice-chip">{calibratedNotice}</span>}
+                  <div className="thresh-stepper-wrap">
+                    <span className="thresh-label">SAFETY THRESHOLD:</span>
+                    <button className="thresh-btn" onClick={() => updateThreshold(opticalThreshold - 5)} title="Decrease threshold by 5 counts">-</button>
+                    <strong className="thresh-val">{opticalThreshold} ADC</strong>
+                    <button className="thresh-btn" onClick={() => updateThreshold(opticalThreshold + 5)} title="Increase threshold by 5 counts">+</button>
+                  </div>
+                  <div className="thresh-action-wrap">
+                    <button className="thresh-btn-calib" onClick={handleAutoCalibrate} title="Auto-calibrate threshold to 60% of current tube reading">
+                      <Sparkles size={12} />
+                      <span>Calibrate to Current</span>
+                    </button>
+                    {calibratedNotice && <span className="calib-notice-chip">{calibratedNotice}</span>}
+                  </div>
                 </div>
               </div>
 
@@ -1310,7 +1333,7 @@ export default function App() {
         {/* =========================================================================
            SECTION 3: HISTORICAL CHARTS & TELEMETRY TRENDS
            ========================================================================= */}
-        <section className="dashboard-section">
+        <section id="section-history" className="dashboard-section">
           <div className="section-title-bar">
             <div className="section-title-wrap">
               <div className="section-number-tag blue">03</div>
@@ -1363,7 +1386,7 @@ export default function App() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid stroke="#e2ece0" strokeDasharray="3 4" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={20} interval="preserveStartEnd" />
                       <YAxis domain={[0, 100]} tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip
                         contentStyle={{ background: '#162c1d', border: '1px solid #2d553b', borderRadius: 10, color: '#ffffff' }}
@@ -1421,7 +1444,7 @@ export default function App() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid stroke="#e2ece0" strokeDasharray="3 4" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={20} interval="preserveStartEnd" />
                       <YAxis tick={{ fill: '#4d6955', fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip
                         contentStyle={{ background: '#162c1d', border: '1px solid #2d553b', borderRadius: 10, color: '#ffffff' }}
@@ -1497,6 +1520,55 @@ export default function App() {
             </button>
           </div>
         </footer>
+
+        {/* =========================================================================
+           MOBILE FLOATING QUICK NAVIGATION DOCK (Thumb-Friendly Experience)
+           ========================================================================= */}
+        <nav className="mobile-bottom-dock" aria-label="Mobile Quick Navigation">
+          <button
+            className="dock-item"
+            onClick={() => document.getElementById('section-humidity')?.scrollIntoView({ behavior: 'smooth' })}
+            title="Jump to Moisture Center"
+          >
+            <div className="dock-icon-wrap cyan">
+              <Droplets size={16} />
+            </div>
+            <span>Moisture</span>
+          </button>
+
+          <button
+            className="dock-item"
+            onClick={() => document.getElementById('section-fuel')?.scrollIntoView({ behavior: 'smooth' })}
+            title="Jump to Optical Fuel Quality"
+          >
+            <div className="dock-icon-wrap emerald">
+              <ScanEye size={16} />
+            </div>
+            <span>Optical</span>
+          </button>
+
+          <button
+            className="dock-item"
+            onClick={() => document.getElementById('section-history')?.scrollIntoView({ behavior: 'smooth' })}
+            title="Jump to Telemetry History"
+          >
+            <div className="dock-icon-wrap blue">
+              <Activity size={16} />
+            </div>
+            <span>Trends</span>
+          </button>
+
+          <button
+            className="dock-item highlight"
+            onClick={() => setShowWifiModal(true)}
+            title="Open Device Wi-Fi Setup Wizard"
+          >
+            <div className="dock-icon-wrap lime">
+              <Wifi size={16} />
+            </div>
+            <span>Setup</span>
+          </button>
+        </nav>
       </main>
     </div>
     </>
