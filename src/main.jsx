@@ -609,12 +609,29 @@ export default function App() {
   });
   const [calibratedNotice, setCalibratedNotice] = useState('');
   const [manualStatusOverride, setManualStatusOverride] = useState(null); // null | 'SAFE' | 'NOT SAFE'
+  const [cloudOverride, setCloudOverride] = useState(null); // 'SAFE' | 'NOT SAFE' from cloud API
+  const [showRemoteBar, setShowRemoteBar] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return p.has('admin') || p.has('remote');
+    } catch (_) {
+      return false;
+    }
+  });
 
-  const toggleFuelStatusOverride = () => {
-    setManualStatusOverride((prev) => {
-      const current = prev || fuelStatus;
-      return current === 'NOT SAFE' ? 'SAFE' : 'NOT SAFE';
-    });
+  const sendCloudOverride = async (target) => {
+    try {
+      const base = getCleanBase();
+      await fetch(`${base}/api/override?state=${target}`, { method: 'POST' });
+    } catch (_) {}
+  };
+
+  const toggleFuelStatusOverride = (forcedTarget) => {
+    const effective = manualStatusOverride !== null ? manualStatusOverride : cloudOverride;
+    const current = effective || fuelStatus;
+    const next = forcedTarget ? forcedTarget : (current === 'NOT SAFE' ? 'SAFE' : 'NOT SAFE');
+    setManualStatusOverride(next);
+    sendCloudOverride(next === 'NOT SAFE' ? 'unsafe' : next === 'SAFE' ? 'safe' : 'auto');
   };
 
   const updateThreshold = (val) => {
@@ -663,6 +680,9 @@ export default function App() {
         return;
       }
       setLatest(data.reading || null);
+      if (typeof data.override !== 'undefined') {
+        setCloudOverride(data.override);
+      }
       setApiState(data.connected ? 'online' : data.reading ? 'stale' : 'waiting');
       setError('');
       setLastPoll(Date.now());
@@ -689,11 +709,11 @@ export default function App() {
     }
   }
 
-  // Live polling interval (3s for latest, 15s for trend history)
+  // Live polling interval (2s for latest, 15s for trend history)
   useEffect(() => {
     loadLatest();
     loadHistory();
-    const a = setInterval(loadLatest, 3000);
+    const a = setInterval(loadLatest, 2000);
     const b = setInterval(loadHistory, 15000);
     const c = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -781,8 +801,10 @@ export default function App() {
     }
   }
 
-  // Hidden Demo State Override: toggles SAFE <-> NOT SAFE on demand
-  if (manualStatusOverride === 'SAFE') {
+  // Effective demo override: local manual override takes precedence, then cloud-synced override
+  const effectiveOverride = manualStatusOverride !== null ? manualStatusOverride : cloudOverride;
+
+  if (effectiveOverride === 'SAFE') {
     fuelStatus = 'SAFE';
     fuelStatusLabel = 'SAFE · HOMOGENEOUS E20 FUEL';
     if (opticalDiff === null || opticalDiff < opticalThreshold) {
@@ -791,7 +813,7 @@ export default function App() {
     }
     fuelStatusDetail =
       `Optical transmission (${fmt(opticalDiff, 0)} ADC) is clear and meets baseline threshold (${opticalThreshold} ADC). Zero phase separation detected.`;
-  } else if (manualStatusOverride === 'NOT SAFE') {
+  } else if (effectiveOverride === 'NOT SAFE') {
     fuelStatus = 'NOT SAFE';
     fuelStatusLabel = 'NOT SAFE · PHASE SEPARATION DETECTED';
     if (opticalDiff === null || opticalDiff >= opticalThreshold) {
@@ -802,17 +824,32 @@ export default function App() {
       `Optical transmission (${fmt(opticalDiff, 0)} ADC) dropped below safety threshold (${opticalThreshold} ADC). Infrared scattering indicates phase separation!`;
   }
 
-  // Keyboard shortcut: Press 't' or 'T' to toggle demo status
+  // Keyboard shortcuts for Laptop Remote Demo Control:
+  // 'u' -> Force UNSAFE (Phase Separation) across all devices
+  // 's' -> Force SAFE (Clear Fuel) across all devices
+  // 't' -> Toggle SAFE / UNSAFE across all devices
+  // 'a' -> Reset to AUTO (Live Sensors)
+  // 'r' -> Toggle Remote Control Bar
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.key === 't' || e.key === 'T') {
+      const k = e.key.toLowerCase();
+      if (k === 't') {
         toggleFuelStatusOverride();
+      } else if (k === 'u') {
+        toggleFuelStatusOverride('NOT SAFE');
+      } else if (k === 's') {
+        toggleFuelStatusOverride('SAFE');
+      } else if (k === 'a') {
+        setManualStatusOverride(null);
+        sendCloudOverride('auto');
+      } else if (k === 'r') {
+        setShowRemoteBar((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fuelStatus, manualStatusOverride]);
+  }, [fuelStatus, manualStatusOverride, cloudOverride]);
 
   // Optical transmittance % (normalized to 12-bit ADC 4095)
   const transmittancePercent =
@@ -880,6 +917,55 @@ export default function App() {
         <div className="ambient ambient-one" />
         <div className="ambient ambient-two" />
         <div className="ambient ambient-three" />
+
+        {/* =========================================================================
+           LAPTOP CLOUD REMOTE CONTROL (Syncs state to phone via cloud in 2s)
+           ========================================================================= */}
+        {showRemoteBar && (
+          <aside className="cloud-remote-bar" aria-label="Cloud Remote Control Bar">
+            <div className="remote-bar-badge">
+              <span className="remote-dot" />
+              <span>CLOUD REMOTE SYNC</span>
+            </div>
+            <div className="remote-btn-group">
+              <button
+                type="button"
+                className={`btn-remote btn-remote-unsafe ${effectiveOverride === 'NOT SAFE' ? 'active' : ''}`}
+                onClick={() => toggleFuelStatusOverride('NOT SAFE')}
+                title="Force Phase Separation on all connected phones"
+              >
+                🔴 Force NOT SAFE
+              </button>
+              <button
+                type="button"
+                className={`btn-remote btn-remote-safe ${effectiveOverride === 'SAFE' ? 'active' : ''}`}
+                onClick={() => toggleFuelStatusOverride('SAFE')}
+                title="Force Normal Clear Fuel on all connected phones"
+              >
+                🟢 Force SAFE
+              </button>
+              <button
+                type="button"
+                className={`btn-remote btn-remote-auto ${!effectiveOverride ? 'active' : ''}`}
+                onClick={() => {
+                  setManualStatusOverride(null);
+                  sendCloudOverride('auto');
+                }}
+                title="Resume live hardware sensors"
+              >
+                🔄 Live (Auto)
+              </button>
+            </div>
+            <button
+              type="button"
+              className="btn-remote-close"
+              onClick={() => setShowRemoteBar(false)}
+              title="Close Remote Bar (Press 'R' key anytime to reopen)"
+            >
+              ✕
+            </button>
+          </aside>
+        )}
 
       {/* =========================================================================
          TOP NAVIGATION BAR

@@ -1,6 +1,16 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
+let memOverride = null;
+
+export function getMemoryOverride() {
+  return memOverride;
+}
+
+export function setMemoryOverride(val) {
+  memOverride = val;
+}
+
 export function getDb() {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_JSON environment variable');

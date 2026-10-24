@@ -3779,3 +3779,121 @@ html {
   }
 }
 
+/* =========================================================================
+   LAPTOP CLOUD REMOTE CONTROL BAR (For Viva / Review Demo Control)
+   ========================================================================= */
+.cloud-remote-bar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(14, 28, 18, 0.96);
+  border: 1.5px solid rgba(163, 230, 53, 0.45);
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 20px rgba(101, 163, 13, 0.25);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation: slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: calc(100vw - 28px);
+}
+
+.remote-bar-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #a3e635;
+  letter-spacing: 0.1em;
+  padding-right: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+}
+
+.remote-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a3e635;
+  box-shadow: 0 0 8px #a3e635;
+  animation: pulse-dot 1.5s infinite;
+}
+
+.remote-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-remote {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-remote-unsafe {
+  background: rgba(185, 28, 28, 0.85);
+  border-color: #ef4444;
+}
+
+.btn-remote-unsafe:hover,
+.btn-remote-unsafe.active {
+  background: #dc2626;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-remote-safe {
+  background: rgba(21, 128, 61, 0.85);
+  border-color: #22c55e;
+}
+
+.btn-remote-safe:hover,
+.btn-remote-safe.active {
+  background: #16a34a;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-remote-auto {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #cbd5e1;
+}
+
+.btn-remote-auto:hover,
+.btn-remote-auto.active {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.btn-remote-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  transition: color 0.2s ease, transform 0.2s ease;
+  line-height: 1;
+}
+
+.btn-remote-close:hover {
+  color: #ffffff;
+  transform: scale(1.15);
+}
+
