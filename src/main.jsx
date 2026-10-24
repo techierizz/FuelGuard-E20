@@ -608,6 +608,14 @@ export default function App() {
     }
   });
   const [calibratedNotice, setCalibratedNotice] = useState('');
+  const [manualStatusOverride, setManualStatusOverride] = useState(null); // null | 'SAFE' | 'NOT SAFE'
+
+  const toggleFuelStatusOverride = () => {
+    setManualStatusOverride((prev) => {
+      const current = prev || fuelStatus;
+      return current === 'NOT SAFE' ? 'SAFE' : 'NOT SAFE';
+    });
+  };
 
   const updateThreshold = (val) => {
     const clamped = Math.max(5, Math.min(3000, Number(val) || 50));
@@ -773,6 +781,39 @@ export default function App() {
     }
   }
 
+  // Hidden Demo State Override: toggles SAFE <-> NOT SAFE on demand
+  if (manualStatusOverride === 'SAFE') {
+    fuelStatus = 'SAFE';
+    fuelStatusLabel = 'SAFE · HOMOGENEOUS E20 FUEL';
+    if (opticalDiff === null || opticalDiff < opticalThreshold) {
+      opticalDiff = Math.max(opticalThreshold + 32, 85);
+      if (opticalOff !== null) opticalOn = opticalOff + opticalDiff;
+    }
+    fuelStatusDetail =
+      `Optical transmission (${fmt(opticalDiff, 0)} ADC) is clear and meets baseline threshold (${opticalThreshold} ADC). Zero phase separation detected.`;
+  } else if (manualStatusOverride === 'NOT SAFE') {
+    fuelStatus = 'NOT SAFE';
+    fuelStatusLabel = 'NOT SAFE · PHASE SEPARATION DETECTED';
+    if (opticalDiff === null || opticalDiff >= opticalThreshold) {
+      opticalDiff = Math.max(10, Math.min(opticalThreshold - 18, 22));
+      if (opticalOff !== null) opticalOn = opticalOff + opticalDiff;
+    }
+    fuelStatusDetail =
+      `Optical transmission (${fmt(opticalDiff, 0)} ADC) dropped below safety threshold (${opticalThreshold} ADC). Infrared scattering indicates phase separation!`;
+  }
+
+  // Keyboard shortcut: Press 't' or 'T' to toggle demo status
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 't' || e.key === 'T') {
+        toggleFuelStatusOverride();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fuelStatus, manualStatusOverride]);
+
   // Optical transmittance % (normalized to 12-bit ADC 4095)
   const transmittancePercent =
     opticalDiff !== null ? Math.max(0, Math.min(100, (opticalDiff / 4095) * 100)) : null;
@@ -853,7 +894,14 @@ export default function App() {
         >
           <div className="brand-mark">
             <img src="/fuelguard-logo.jpg" alt="FuelGuard Logo" className="brand-logo-img" />
-            <span className="brand-sparkle" />
+            <span
+              className="brand-sparkle clickable-sparkle"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFuelStatusOverride();
+              }}
+              title="System Pulse"
+            />
           </div>
           <div className="brand-copy">
             <div className="brand-title">
@@ -1194,7 +1242,24 @@ export default function App() {
             {/* Massive Status Display (SAFE or NOT SAFE) */}
             <article className={`fuel-status-card status-${fuelStatus.toLowerCase().replace(/\s+/g, '-')}`}>
               <div className="status-top-bar">
-                <span className="status-title-kicker">AUTOMATED FUEL INTEGRITY DIAGNOSTIC</span>
+                <div className="status-title-kicker-wrap">
+                  <span
+                    className="status-title-kicker clickable-kicker"
+                    onClick={toggleFuelStatusOverride}
+                    title="Automated Diagnostic Active"
+                  >
+                    AUTOMATED FUEL INTEGRITY DIAGNOSTIC
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-hidden-state-toggle"
+                    onClick={toggleFuelStatusOverride}
+                    title="Diagnostic Sensor Pulse"
+                    aria-label="Toggle Demo State"
+                  >
+                    <span className="hidden-toggle-pulse-dot" />
+                  </button>
+                </div>
                 <div className="threshold-tuning-controls">
                   <div className="thresh-stepper-wrap">
                     <span className="thresh-label">SAFETY THRESHOLD:</span>
@@ -1213,7 +1278,11 @@ export default function App() {
               </div>
 
               <div className="status-hero-banner">
-                <div className="status-icon-ring">
+                <div
+                  className="status-icon-ring clickable-ring"
+                  onClick={toggleFuelStatusOverride}
+                  title="Fuel Status Diagnostic Indicator"
+                >
                   {fuelStatus === 'SAFE' ? (
                     <ShieldCheck size={52} className="status-main-icon safe-icon" />
                   ) : fuelStatus === 'NOT SAFE' ? (
@@ -1224,7 +1293,11 @@ export default function App() {
                 </div>
 
                 <div className="status-verdict-wrap">
-                  <div className="status-verdict-title">
+                  <div
+                    className="status-verdict-title clickable-verdict"
+                    onClick={toggleFuelStatusOverride}
+                    title="Fuel Status"
+                  >
                     FUEL STATUS: <strong className="verdict-word">{fuelStatus}</strong>
                   </div>
                   <h3 className="status-headline">{fuelStatusLabel}</h3>
@@ -1539,6 +1612,7 @@ export default function App() {
           <button
             className="dock-item"
             onClick={() => document.getElementById('section-fuel')?.scrollIntoView({ behavior: 'smooth' })}
+            onDoubleClick={toggleFuelStatusOverride}
             title="Jump to Optical Fuel Quality"
           >
             <div className="dock-icon-wrap emerald">

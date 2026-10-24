@@ -978,12 +978,92 @@ button:active {
   gap: 12px;
 }
 
+.status-title-kicker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .status-title-kicker {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
+}
+
+.clickable-kicker {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.clickable-kicker:hover {
+  color: #ffffff;
+}
+
+.btn-hidden-state-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0.85;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-hidden-state-toggle:hover {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+.btn-hidden-state-toggle:active {
+  transform: scale(0.9);
+}
+
+.hidden-toggle-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a3e635;
+  box-shadow: 0 0 8px #a3e635;
+  animation: pulse-dot 1.8s infinite;
+  display: inline-block;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-not-safe .hidden-toggle-pulse-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.clickable-ring {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease;
+}
+
+.clickable-ring:active {
+  transform: scale(0.94);
+}
+
+.clickable-verdict {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clickable-sparkle {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Interactive Safety Threshold Tuning Controls */
