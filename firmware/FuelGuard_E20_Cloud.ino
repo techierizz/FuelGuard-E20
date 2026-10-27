@@ -6,11 +6,11 @@
 #include <DHT.h>
 #include <ArduinoJson.h>
 
-#define DHT_INLET_PIN   5    // 1st DHT22: Pre-silica gel
-#define DHT_OUTLET_PIN  4    // 2nd DHT22: Post-silica gel
+#define DHT_INLET_PIN   5    
+#define DHT_OUTLET_PIN  4   
 #define DHTTYPE         DHT22
-#define IR_LED_PIN      7    // 940 nm IR Emitter
-#define PHOTO_ADC_PIN   1    // Photodiode ADC Input (12-bit)
+#define IR_LED_PIN      7   
+#define PHOTO_ADC_PIN   1    
 
 const char* WIFI_SSID     = "iQOO Z9 5G";
 const char* WIFI_PASSWORD = "amrit123";
