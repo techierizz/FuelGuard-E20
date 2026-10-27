@@ -1,35 +1,3 @@
-/*
-  ======================================================================================
-  FuelGuard E20 - Full Production Cloud Telemetry & Diagnostic Firmware (CALIBRATED)
-  ======================================================================================
-  Target: ESP32-S3 Dev Module
-  Purpose: Real-time dual-stage moisture extraction, 940 nm infrared optical phase
-           separation detection, interactive bench calibration, and Vercel/Firestore
-           cloud synchronization for the FuelGuard E20 Web & Android App.
-
-  WIRING PLAN:
-    - DHT22 Inlet (Air Intake, before Silica Gel)   -> GPIO 5
-    - DHT22 Outlet (Conditioned Air, after Gel)      -> GPIO 4
-    - IR Transmitter LED (940 nm)                   -> GPIO 7 (through 330 ohm resistor)
-    - Photodiode Receiver Signal (ADC)              -> GPIO 1 (Anode + 10k to GND, Cathode to 3.3V)
-
-  LIBRARIES REQUIRED (Install in Arduino IDE Library Manager):
-    - "DHT sensor library" by Adafruit
-    - "Adafruit Unified Sensor" by Adafruit
-    - "ArduinoJson" by Benoit Blanchon (version 6.x or 7.x)
-
-  INTERACTIVE SERIAL COMMANDS:
-    - 'b' -> Auto-Calibrate baseline to current clear tube
-    - '+' -> Increase safety threshold by 10 counts
-    - '-' -> Decrease safety threshold by 10 counts
-    - 't' -> Toggle IR LED permanently ON/OFF (Phone camera purple glow test)
-    - 's' -> Trigger immediate cloud telemetry upload
-    - 'w' -> Reset Wi-Fi credentials & launch 'FuelGuard-Setup' portal
-    - 'r' -> Reboot ESP32
-    - 'h' -> Print hardware pinout & troubleshooting guide
-  ======================================================================================
-*/
-
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -38,34 +6,26 @@
 #include <DHT.h>
 #include <ArduinoJson.h>
 
-// ------------------- PIN DEFINITIONS -------------------
 #define DHT_INLET_PIN   5    // 1st DHT22: Pre-silica gel
 #define DHT_OUTLET_PIN  4    // 2nd DHT22: Post-silica gel
 #define DHTTYPE         DHT22
 #define IR_LED_PIN      7    // 940 nm IR Emitter
 #define PHOTO_ADC_PIN   1    // Photodiode ADC Input (12-bit)
 
-// ------------------- CLOUD & NETWORK CONFIG ------------
-// 1. Enter your Wi-Fi router or Phone Mobile Hotspot details:
 const char* WIFI_SSID     = "iQOO Z9 5G";
 const char* WIFI_PASSWORD = "amrit123";
 
-// 2. Your deployed Vercel endpoint:
 const char* API_URL       = "https://fuel-guard-e20.vercel.app/api/ingest";
 
-// 3. Security token (matches DEVICE_TOKEN on Vercel):
 const char* DEVICE_TOKEN  = "FuelGuard_Secret_Key_2026";
 
-// ------------------- TIMING & THRESHOLDS ---------------
-const unsigned long SEND_INTERVAL_MS = 5000; // Cloud sync every 5 seconds
-const int ADC_SAMPLES = 48;                  // Multi-sample averaging
-const int LED_SETTLE_MS = 15;                // Settle time before reading ADC
+const unsigned long SEND_INTERVAL_MS = 5000; 
+const int ADC_SAMPLES = 48;                
+const int LED_SETTLE_MS = 15;               
 
-// Dynamic Optical Threshold (Calibrated for clear tube baseline):
-int phaseSeparationThreshold = 50;           // Baseline > 50 -> SAFE
-int calibratedBaseline = 84;                 // Initial default empty tube baseline
+int phaseSeparationThreshold = 50;           
+int calibratedBaseline = 84;                 
 
-// ------------------- GLOBALS ---------------------------
 DHT dhtInlet(DHT_INLET_PIN, DHTTYPE);
 DHT dhtOutlet(DHT_OUTLET_PIN, DHTTYPE);
 
@@ -81,12 +41,10 @@ unsigned long lastSend = 0;
 unsigned long uploadCycleCount = 0;
 bool manualLedOn = false;
 
-// Convert 12-bit ADC count (0 - 4095) to Millivolts (3.3V reference)
 float adcToMillivolts(uint16_t adc) {
   return ((float)adc * 3300.0f) / 4095.0f;
 }
 
-// Multi-sample ADC averaging to eliminate ambient electronic noise
 uint16_t readAverageADC() {
   uint32_t sum = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
@@ -96,29 +54,20 @@ uint16_t readAverageADC() {
   return (uint16_t)(sum / ADC_SAMPLES);
 }
 
-// Differential optical measurement (Ambient light subtraction)
 bool measureOptical(uint16_t &offVal, uint16_t &onVal, int32_t &delta) {
-  // 1. Ambient Baseline (LED OFF)
   digitalWrite(IR_LED_PIN, LOW);
   delay(LED_SETTLE_MS);
   offVal = readAverageADC();
 
-  // 2. Transmitted Illumination (LED ON)
   digitalWrite(IR_LED_PIN, HIGH);
   delay(LED_SETTLE_MS);
   onVal = readAverageADC();
 
-  // 3. Return LED to LOW
   digitalWrite(IR_LED_PIN, LOW);
 
-  // 4. Optical Delta
   delta = (int32_t)onVal - (int32_t)offVal;
   return (offVal > 0 || onVal > 0) && abs(delta) >= 3;
 }
-
-// -------------------------------------------------------------
-// WI-FI PROVISIONING & CAPTIVE PORTAL HANDLERS
-// -------------------------------------------------------------
 
 void handleRoot() {
   int n = WiFi.scanNetworks();
@@ -217,8 +166,8 @@ void startCaptivePortal() {
 
   webServer.on("/", HTTP_GET, handleRoot);
   webServer.on("/save", HTTP_POST, handleSave);
-  webServer.on("/generate_204", HTTP_GET, handleRoot);       // Android captive portal detect
-  webServer.on("/hotspot-detect.html", HTTP_GET, handleRoot); // Apple captive portal detect
+  webServer.on("/generate_204", HTTP_GET, handleRoot);       
+  webServer.on("/hotspot-detect.html", HTTP_GET, handleRoot); 
   webServer.onNotFound(handleNotFound);
   webServer.begin();
 
@@ -233,7 +182,6 @@ void startCaptivePortal() {
 void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
 
-  // Load saved credentials from NVS (Preferences)
   preferences.begin("fuelguard", true);
   String savedSSID = preferences.getString("ssid", "");
   String savedPass = preferences.getString("pass", "");
@@ -275,7 +223,6 @@ void connectWiFi() {
   }
 }
 
-// Run dynamic optical auto-calibration
 void runAutoCalibration() {
   uint16_t bOff = 0, bOn = 0;
   int32_t bDelta = 0;
@@ -337,7 +284,6 @@ void printWiringHelp() {
   Serial.println(F("-------------------------------------------------------------------------------------\n"));
 }
 
-// Upload live telemetry to Vercel Serverless Function / Firestore
 void sendCloudTelemetry(float inRH, float outRH, float inTemp, float outTemp, 
                         uint16_t ledOff, uint16_t ledOn, int32_t optDelta, 
                         bool moistureOk, bool opticalOk) {
@@ -349,7 +295,6 @@ void sendCloudTelemetry(float inRH, float outRH, float inTemp, float outTemp,
     }
   }
 
-  // Prevent sending to dummy placeholder domain
   if (String(API_URL).indexOf("YOUR-VERCEL-DOMAIN") >= 0) {
     Serial.println(F("  [CLOUD NOTICE] Please update API_URL in firmware with your deployed Vercel domain."));
     return;
@@ -396,7 +341,6 @@ void sendCloudTelemetry(float inRH, float outRH, float inTemp, float outTemp,
 void setup() {
   Serial.begin(115200);
 
-  // Allow up to 2.5s for Serial Monitor attachment
   unsigned long startWait = millis();
   while (!Serial && (millis() - startWait < 2500)) {
     delay(10);
@@ -406,7 +350,6 @@ void setup() {
   pinMode(IR_LED_PIN, OUTPUT);
   digitalWrite(IR_LED_PIN, LOW);
 
-  // Configure 12-bit ADC with 11dB attenuation
   analogReadResolution(12);
   analogSetPinAttenuation(PHOTO_ADC_PIN, ADC_11db);
 
@@ -418,7 +361,6 @@ void setup() {
 }
 
 void loop() {
-  // If in Captive Portal mode, handle DNS queries and web clients
   if (isPortalActive) {
     dnsServer.processNextRequest();
     webServer.handleClient();
@@ -426,7 +368,6 @@ void loop() {
     return;
   }
 
-  // Check for interactive user commands from Serial Monitor
   if (Serial.available()) {
     char cmd = Serial.read();
 
@@ -463,27 +404,22 @@ void loop() {
       return;
     } else if (cmd == 's' || cmd == 'S') {
       Serial.println(F("\n>>> [MANUAL SYNC] Triggering immediate cloud upload..."));
-      lastSend = 0; // Triggers immediate loop execution
+      lastSend = 0; 
     } else if (cmd == 'h' || cmd == 'H') {
       printWiringHelp();
       return;
     }
   }
 
-  // Periodic Telemetry & Diagnostic Cycle
   if (millis() - lastSend >= SEND_INTERVAL_MS) {
     lastSend = millis();
     uploadCycleCount++;
 
-    // -------------------------------------------------------------
-    // 1. READ MOISTURE SYSTEM (DUAL DHT22 SENSORS)
-    // -------------------------------------------------------------
     float inRH = dhtInlet.readHumidity();
     float inTemp = dhtInlet.readTemperature();
     float outRH = dhtOutlet.readHumidity();
     float outTemp = dhtOutlet.readTemperature();
 
-    // Bench demo loose wire fail-safes (ensures live telemetry never stalls)
     if (isnan(inRH) || inRH <= 0.0f) {
       inRH = 66.8f + (float)random(-8, 9) / 10.0f;
     }
@@ -497,7 +433,6 @@ void loop() {
       outTemp = inTemp - 0.6f;
     }
 
-    // DEMO RULE: Outlet humidity must be at least 6% smaller than inlet humidity
     if (outRH >= (inRH - 6.0f)) {
       outRH = inRH - (6.4f + (float)random(3, 18) / 10.0f);
     }
@@ -510,15 +445,11 @@ void loop() {
     float deltaRH = inRH - outRH;
     float dryingEff = (inRH > 0.0f) ? (deltaRH / inRH * 100.0f) : 0.0f;
     float deltaTemp = outTemp - inTemp;
-
-    // -------------------------------------------------------------
-    // 2. READ OPTICAL SYSTEM (IR LED + PHOTODIODE)
-    // -------------------------------------------------------------
+    
     uint16_t ledOff = 0, ledOn = 0;
     int32_t optDelta = 0;
     bool opticalOk = measureOptical(ledOff, ledOn, optDelta);
 
-    // DEMO RULE: If optical delta is between 0 and 50, add +60 to value
     if (optDelta >= 0 && optDelta <= 50) {
       optDelta += 60;
       ledOn = ledOff + (uint16_t)optDelta;
@@ -532,9 +463,6 @@ void loop() {
     float optTransmittance = ((float)optDelta / 4095.0f) * 100.0f;
     if (optTransmittance < 0.0f) optTransmittance = 0.0f;
 
-    // -------------------------------------------------------------
-    // 3. EVALUATE FUEL STATUS (SAFE vs NOT SAFE)
-    // -------------------------------------------------------------
     String fuelStatusStr;
     String fuelDetailStr;
 
@@ -546,15 +474,11 @@ void loop() {
       fuelDetailStr = "Phase Separation Detected! High Optical Scatter / Biphasic Interface";
     }
 
-    // -------------------------------------------------------------
-    // 4. DISPLAY TERMINAL DASHBOARD
-    // -------------------------------------------------------------
     Serial.println(F("--------------------------------------------------------------------------------"));
     Serial.printf("[CYCLE #%lu | UPTIME: %lu sec | WI-FI: %s]\n",
                   uploadCycleCount, millis() / 1000,
                   (WiFi.status() == WL_CONNECTED) ? "CONNECTED" : "OFFLINE");
 
-    // PART A: MOISTURE CONTROL CENTER
     Serial.println(F("\n[1] MOISTURE CONTROL SYSTEM (DUAL DHT22):"));
     if (inOk) {
       Serial.printf("    * INLET SENSOR  [GPIO 5] :  %5.1f %%RH  |  %4.1f °C  [HEALTHY]\n", inRH, inTemp);
@@ -581,14 +505,12 @@ void loop() {
       }
     }
 
-    // PART B: OPTICAL SENSING & FUEL QUALITY CENTER
     Serial.println(F("\n[2] OPTICAL SENSING PART (940nm IR + PHOTODIODE ADC):"));
     Serial.printf("    * LED OFF (Ambient Dark)  :  %4u counts  (%6.1f mV)\n", ledOff, adcToMillivolts(ledOff));
     Serial.printf("    * LED ON  (Illuminated)   :  %4u counts  (%6.1f mV)\n", ledOn, adcToMillivolts(ledOn));
     Serial.printf("    * TRANSMITTED DELTA (Δ)   :  %+4ld counts  (Transmittance: %4.1f %%) [Threshold: %d]\n", 
                   (long)optDelta, optTransmittance, phaseSeparationThreshold);
 
-    // PART C: FUEL STATUS VERDICT
     Serial.println(F("\n[3] FUEL INTEGRITY DIAGNOSTIC:"));
     if (fuelStatusStr == "SAFE") {
       Serial.printf("    >>> STATUS: [ %s ] <<<\n", fuelStatusStr.c_str());
@@ -600,10 +522,7 @@ void loop() {
       Serial.printf("    >>> STATUS: [ %s ] <<<\n", fuelStatusStr.c_str());
       Serial.printf("    >>> NOTE  : %s\n", fuelDetailStr.c_str());
     }
-
-    // -------------------------------------------------------------
-    // 5. TRANSMIT TO CLOUD & APP
-    // -------------------------------------------------------------
+    za
     Serial.println(F("\n[4] CLOUD & MOBILE APP TELEMETRY:"));
     if (moistureOk) {
       sendCloudTelemetry(inRH, outRH, inTemp, outTemp, ledOff, ledOn, optDelta, moistureOk, opticalOk);
